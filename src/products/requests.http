@@ -1,0 +1,9 @@
+### Create a new User
+Post http://localhost:3000/products
+Content-Type: application/json
+
+{
+    "name": "abc",
+    "description": "Lool1122new4",
+    "price":"123"
+}
