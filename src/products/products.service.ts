@@ -1,7 +1,3 @@
-/*
-https://docs.nestjs.com/providers#services
-*/
-
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as AsyncLock from 'async-lock';
@@ -20,14 +16,24 @@ export class ProductsService {
   ) {}
 
   async createProduct(createProductDto: CreateProductDto) {
-    return this.lock.acquire('key', async () => {
+    console.log("execution started")
+    try {
+      return await this.lock.acquire('key', async () => {
+        console.log("lock enter")        
         const product = new Product();
         product.name = createProductDto.name;
         product.description = createProductDto.description;
         product.price = createProductDto.price;
         product.barcode = await this.generateBarcode();
+        console.log("lock done");
         return await this.productRepository.save(product);
-      });
+      }, () => {
+        console.log("lock1 released");
+      })
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
   }
 
   private async generateBarcode(): Promise<string> {
@@ -43,6 +49,7 @@ export class ProductsService {
       const existingProduct = await this.productRepository.findOne({where: {barcode} });
       if (!existingProduct) {
         this.counter = counter;
+        
         return barcode;
       }
       counter++;
