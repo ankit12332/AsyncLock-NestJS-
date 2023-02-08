@@ -8,7 +8,7 @@ import { Product } from './product.entity';
 @Injectable()
 export class ProductsService {
     private lock = new AsyncLock();
-    private counter = 0;
+    private dateCounterMap = new Map<string, number>();
 
   constructor(
     @InjectRepository(Product)
@@ -18,8 +18,8 @@ export class ProductsService {
   async createProduct(createProductDto: CreateProductDto) {
     console.log("execution started")
     try {
-      return await this.lock.acquire('key', async () => {
-        console.log("lock enter")        
+      return this.lock.acquire('key', async () => {
+        console.log("lock enter");
         const product = new Product();
         product.name = createProductDto.name;
         product.description = createProductDto.description;
@@ -41,15 +41,15 @@ export class ProductsService {
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const day = date.getDate();
-    let counter = this.counter;
 
+    const dateKey = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    let counter = this.dateCounterMap.get(dateKey) || 0;
     
     while (true) {
-      const barcode = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}-${counter.toString().padStart(3, '0')}`;
+      const barcode = `${dateKey}-${counter.toString().padStart(3, '0')}`;
       const existingProduct = await this.productRepository.findOne({where: {barcode} });
       if (!existingProduct) {
-        this.counter = counter;
-        
+        this.dateCounterMap.set(dateKey, counter + 1);
         return barcode;
       }
       counter++;
